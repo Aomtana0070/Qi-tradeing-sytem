@@ -1,0 +1,49 @@
+{
+  "name": "iqoption",
+  "version": "1.0.0",
+  "description": "ระบบ Bot สำหรับการเทรดอัตโนมัติบน IQ Option Binary Options โดยใช้ AI และ Technical Indicators",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "dashboard": "node src/dashboard/server.js",
+    "dashboard:dev": "npm run dev --prefix dashboard-ui",
+    "dashboard:build": "npm run build --prefix dashboard-ui",
+    "dashboard:install": "npm install --prefix dashboard-ui",
+    "test": "jest",
+    "lint": "eslint src/",
+    "format": "prettier --write src/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "csv-writer": "^1.6.0",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.20",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "iqoption": "github:LuKks/iqoption",
+    "technicalindicators": "^3.1.0",
+    "ws": "^8.20.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.8.1",
+    "jest": "^30.4.2"
+  },
+  "overrides": {
+    "js-yaml": "^4.3.2"
+  }
+}

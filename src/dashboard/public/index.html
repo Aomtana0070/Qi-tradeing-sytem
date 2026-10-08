@@ -1,0 +1,1786 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🤖 IQ Option Bot Dashboard</title>
+    <!-- Chart Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+      /* ── VARIABLES ── */
+      :root {
+        --bg-main: #080c14;
+        --bg-card: rgba(15, 23, 42, 0.85);
+        --bg-card2: rgba(20, 30, 55, 0.9);
+        --accent: #7c3aed;
+        --accent2: #4f46e5;
+        --green: #00d4aa;
+        --red: #ff4757;
+        --blue: #4a9eff;
+        --gold: #f59e0b;
+        --text: #e8eaf0;
+        --muted: #64748b;
+        --border: rgba(124, 58, 237, 0.25);
+        --glow: 0 0 20px rgba(124, 58, 237, 0.3);
+        --glow-green: 0 0 15px rgba(0, 212, 170, 0.4);
+      }
+
+      /* ── BASE (2x LARGER) ── */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg-main);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+        font-size: 16px;
+      }
+
+      /* ── ANIMATED BACKGROUND ── */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 20% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 80%, rgba(79, 70, 229, 0.12) 0%, transparent 50%),
+          radial-gradient(ellipse at 50% 50%, rgba(0, 212, 170, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── LAYOUT ── */
+      .wrapper {
+        position: relative;
+        z-index: 1;
+        padding: 32px;
+        max-width: 2000px;
+        margin: 0 auto;
+      }
+
+      /* ── HEADER (2x) ── */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-card2);
+        border: 2px solid var(--border);
+        border-radius: 20px;
+        padding: 24px 32px;
+        margin-bottom: 32px;
+        backdrop-filter: blur(12px);
+        box-shadow: var(--glow);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo-icon {
+        font-size: 44px;
+      }
+      .logo h1 {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #a78bfa, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .clock {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .status-badge {
+        padding: 8px 16px;
+        background: rgba(0, 212, 170, 0.15);
+        border: 1px solid var(--green);
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .btn-settings {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-settings:hover {
+        transform: scale(1.05);
+        box-shadow: var(--glow);
+      }
+
+      /* ── PAUSE/RESUME BUTTON ── */
+      .btn-pause-resume {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--gold), #f59e0b);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        min-width: 150px;
+      }
+
+      .btn-pause-resume:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+      }
+
+      .btn-pause-resume.paused {
+        background: linear-gradient(135deg, var(--red), #ff6b6b);
+      }
+
+      .btn-pause-resume.paused:hover {
+        box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+      }
+
+      /* ── TRADING CONTROL BUTTONS ── */
+      .trading-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        background: rgba(50, 50, 100, 0.2);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+      }
+
+      .btn-trade {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 16px;
+        min-width: 100px;
+      }
+
+      .btn-test-trade {
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        color: white;
+      }
+
+      .btn-test-trade:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+      }
+
+      .btn-call {
+        background: linear-gradient(135deg, #00d4aa, #00a86d);
+        color: white;
+      }
+
+      .btn-call:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(0, 212, 170, 0.6);
+      }
+
+      .btn-put {
+        background: linear-gradient(135deg, #ff4757, #ff3838);
+        color: white;
+      }
+
+      .btn-put:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 71, 87, 0.6);
+      }
+
+      .btn-trade:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      .aggression-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(79, 70, 229, 0.2);
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .aggression-indicator.aggressive {
+        background: rgba(255, 71, 87, 0.2);
+        border-color: var(--red);
+        color: var(--red);
+      }
+
+      /* ── MAIN GRID (2x) ── */
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 32px;
+        margin-bottom: 32px;
+      }
+
+      .content-left {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+
+      /* ── STAT CARDS (2x) ── */
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+
+      .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+        transition: all 0.3s;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--glow);
+        border-color: var(--accent);
+      }
+
+      .stat-label {
+        font-size: 16px;
+        color: var(--muted);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--green), var(--blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stat-change {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      /* ── INDICATORS SECTION (2x) ── */
+      .indicators-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text);
+      }
+
+      .ind-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+
+      .ind-item {
+        text-align: center;
+      }
+
+      .ind-label {
+        font-size: 16px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .ind-bar-wrap {
+        height: 32px;
+        background: rgba(100, 116, 139, 0.2);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+
+      .ind-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--blue), var(--accent));
+        transition: width 0.3s;
+      }
+
+      .ind-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--green);
+      }
+
+      /* ── FILTER STATUS (2x) ── */
+      .filter-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+      }
+
+      .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: rgba(50, 50, 100, 0.3);
+        border-radius: 12px;
+        border-left: 4px solid var(--muted);
+      }
+
+      .filter-item.ok {
+        border-left-color: var(--green);
+        background: rgba(0, 212, 170, 0.1);
+      }
+
+      .filter-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .filter-item.ok .filter-dot {
+        background: var(--green);
+        box-shadow: 0 0 10px var(--green);
+      }
+
+      .filter-name {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      /* ── TRADES TABLE (2x) ── */
+      .trades-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 16px;
+      }
+
+      th {
+        text-align: left;
+        padding: 16px;
+        border-bottom: 2px solid var(--border);
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      tr:hover {
+        background: rgba(124, 58, 237, 0.1);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .badge.win {
+        background: rgba(0, 212, 170, 0.2);
+        color: var(--green);
+      }
+
+      .badge.loss {
+        background: rgba(255, 71, 87, 0.2);
+        color: var(--red);
+      }
+
+      /* ── LUNA CHAT PANEL (2x) ── */
+      .chat-panel {
+        background: var(--bg-card);
+        border: 2px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        height: 800px;
+      }
+
+      .luna-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .luna-avatar {
+        width: 120px;
+        height: 150px;
+        background: rgba(124, 58, 237, 0.15);
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .luna-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .luna-char {
+        font-size: 80px;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .luna-char.thinking {
+        animation: wobble 0.6s ease-in-out infinite;
+      }
+
+      .luna-char.talking {
+        animation: bounce 0.5s ease-in-out infinite;
+      }
+
+      .luna-char.stressed {
+        animation: shake 0.3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes wobble {
+        0%,
+        100% {
+          transform: rotateZ(0deg);
+        }
+        25% {
+          transform: rotateZ(-5deg);
+        }
+        75% {
+          transform: rotateZ(5deg);
+        }
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-8px);
+        }
+        75% {
+          transform: translateX(8px);
+        }
+      }
+
+      .luna-info {
+        flex: 1;
+      }
+
+      .luna-info h3 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .luna-info p {
+        font-size: 16px;
+        color: var(--muted);
+      }
+
+      .luna-status {
+        font-size: 14px;
+        color: var(--gold);
+        margin-top: 8px;
+      }
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 16px;
+        padding: 16px;
+        background: rgba(50, 50, 100, 0.2);
+        border-radius: 12px;
+      }
+
+      .msg {
+        margin-bottom: 16px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        font-size: 16px;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .msg.user {
+        background: var(--accent);
+        color: white;
+        text-align: right;
+        margin-left: 20px;
+      }
+
+      .msg.luna {
+        background: rgba(79, 70, 229, 0.3);
+        border-left: 4px solid var(--accent);
+        margin-right: 20px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .chat-input-row {
+        display: flex;
+        gap: 12px;
+      }
+
+      .chat-input {
+        flex: 1;
+        padding: 14px;
+        background: rgba(50, 50, 100, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 16px;
+      }
+
+      .chat-input::placeholder {
+        color: var(--muted);
+      }
+
+      .btn-send {
+        padding: 14px 24px;
+        background: linear-gradient(135deg, var(--green), var(--blue));
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-send:hover {
+        transform: scale(1.05);
+      }
+
+      .quick-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .quick-btn {
+        padding: 12px;
+        background: rgba(79, 70, 229, 0.2);
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .quick-btn:hover {
+        background: rgba(79, 70, 229, 0.4);
+        transform: translateX(4px);
+      }
+
+      /* ── SETTINGS MODAL ── */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal {
+        background: var(--bg-card2);
+        border: 2px solid var(--accent);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--border);
+      }
+
+      .modal-header h2 {
+        font-size: 32px;
+        font-weight: 700;
+      }
+
+      .btn-close {
+        background: none;
+        border: none;
+        color: var(--text);
+        font-size: 32px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-close:hover {
+        color: var(--red);
+        transform: rotate(90deg);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 28px;
+      }
+
+      .setting-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .setting-label {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .setting-desc {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .setting-input {
+        padding: 14px;
+        background: rgba(50, 50, 100, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 16px;
+      }
+
+      .setting-input::placeholder {
+        color: var(--muted);
+      }
+
+      .setting-select {
+        padding: 14px;
+        background: rgba(50, 50, 100, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 16px;
+      }
+
+      .setting-toggle {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .toggle-switch {
+        width: 60px;
+        height: 32px;
+        background: var(--muted);
+        border: none;
+        border-radius: 16px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s;
+      }
+
+      .toggle-switch.active {
+        background: var(--green);
+      }
+
+      .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: all 0.3s;
+      }
+
+      .toggle-switch.active::after {
+        left: 30px;
+      }
+
+      .settings-footer {
+        display: flex;
+        gap: 16px;
+        margin-top: 32px;
+        padding-top: 16px;
+        border-top: 2px solid var(--border);
+      }
+
+      .btn-save {
+        flex: 1;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--green), var(--blue));
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-save:hover {
+        transform: scale(1.02);
+        box-shadow: var(--glow-green);
+      }
+
+      .btn-cancel {
+        flex: 1;
+        padding: 16px;
+        background: rgba(100, 116, 139, 0.3);
+        border: 1px solid var(--muted);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-cancel:hover {
+        background: rgba(100, 116, 139, 0.5);
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(50, 50, 100, 0.2);
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--accent);
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <!-- HEADER -->
+      <header>
+        <div class="logo">
+          <div class="logo-icon">🤖</div>
+          <h1>IQ Option Bot</h1>
+        </div>
+        <div class="header-right">
+          <div class="status-badge" id="status">🟢 Running</div>
+          <div class="clock" id="clock">--:--:--</div>
+          <div class="trading-controls">
+            <button
+              class="btn-trade btn-test-trade"
+              onclick="testTrade()"
+              title="Test trading logic"
+            >
+              🧪 Test Trade
+            </button>
+            <button class="btn-trade btn-call" onclick="manualCall()" title="Manual BUY/CALL trade">
+              📈 CALL (↑)
+            </button>
+            <button class="btn-trade btn-put" onclick="manualPut()" title="Manual SELL/PUT trade">
+              📉 PUT (↓)
+            </button>
+            <div class="aggression-indicator" id="aggressionBadge">📊 NORMAL</div>
+          </div>
+          <button class="btn-pause-resume" id="pauseResumeBtn" onclick="togglePauseResume()">
+            ⏸️ Pause
+          </button>
+          <button class="btn-settings" onclick="openSettings()">⚙️ Settings</button>
+        </div>
+      </header>
+
+      <!-- MAIN GRID -->
+      <div class="main-grid">
+        <div class="content-left">
+          <!-- STAT CARDS -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-label">Balance</div>
+              <div class="stat-value" id="balance">$0.00</div>
+              <div class="stat-change" id="balance-change">+0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Win Rate</div>
+              <div class="stat-value" id="win-rate">0%</div>
+              <div class="stat-change" id="total-trades">0 trades</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Today P&L</div>
+              <div class="stat-value" id="daily-pnl">$0.00</div>
+              <div class="stat-change" id="daily-change">+0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Streak</div>
+              <div class="stat-value" id="streak">0</div>
+              <div class="stat-change" id="streak-type">Waiting...</div>
+            </div>
+          </div>
+
+          <!-- INDICATORS -->
+          <div class="indicators-section">
+            <h2 class="section-title">📊 Indicators</h2>
+            <div class="ind-grid">
+              <div class="ind-item">
+                <div class="ind-label">RSI</div>
+                <div class="ind-bar-wrap">
+                  <div class="ind-bar blue" id="rsi-bar" style="width: 50%"></div>
+                </div>
+                <div class="ind-value" id="rsi-val">50</div>
+              </div>
+              <div class="ind-item">
+                <div class="ind-label">MACD</div>
+                <div class="ind-bar-wrap">
+                  <div class="ind-bar blue" id="macd-bar" style="width: 50%"></div>
+                </div>
+                <div class="ind-value" id="macd-val">0</div>
+              </div>
+              <div class="ind-item">
+                <div class="ind-label">BB Width</div>
+                <div class="ind-bar-wrap">
+                  <div class="ind-bar blue" id="bb-bar" style="width: 50%"></div>
+                </div>
+                <div class="ind-value" id="bb-val">50%</div>
+              </div>
+              <div class="ind-item">
+                <div class="ind-label">EMA Trend</div>
+                <div class="ind-bar-wrap">
+                  <div class="ind-bar blue" id="ema-bar" style="width: 50%"></div>
+                </div>
+                <div class="ind-value" id="ema-val">→</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHART (CANDLES) -->
+          <div class="indicators-section">
+            <h2 class="section-title">📈 Price Chart</h2>
+            <canvas id="candleChart" style="max-height: 300px"></canvas>
+          </div>
+
+          <!-- FILTERS -->
+          <div class="filter-section">
+            <h2 class="section-title">🔧 Active Filters</h2>
+            <div class="filter-grid">
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">Session OK</div>
+              </div>
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">No News</div>
+              </div>
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">Volatility OK</div>
+              </div>
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">Win Rate OK</div>
+              </div>
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">Circuit OK</div>
+              </div>
+              <div class="filter-item ok">
+                <div class="filter-dot"></div>
+                <div class="filter-name">Capital Zone</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRADES TABLE -->
+          <div class="trades-section">
+            <h2 class="section-title">📈 Recent Trades</h2>
+            <table id="trades-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Asset</th>
+                  <th>Direction</th>
+                  <th>Amount</th>
+                  <th>Result</th>
+                  <th>P&L</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>--:--:--</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td><span class="badge win">WAIT</span></td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LUNA CHAT (RIGHT SIDEBAR) -->
+        <div class="chat-panel">
+          <div class="luna-header">
+            <div class="luna-avatar" id="luna-avatar">
+              <img id="luna-image" src="/luna-images/3.png" alt="Luna" />
+            </div>
+            <div class="luna-info">
+              <h3>Luna ✨</h3>
+              <p>AI Trading Assistant</p>
+              <div class="luna-status">
+                <span id="luna-state-text">Ready to help...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-buttons">
+            <button class="quick-btn" onclick="ask('สรุปวันนี้')">📊 Today Summary</button>
+            <button class="quick-btn" onclick="ask('ทำไมไม่เทรด')">❓ Why No Trade?</button>
+            <button class="quick-btn" onclick="ask('Indicators')">📈 Indicators</button>
+            <button class="quick-btn" onclick="ask('ความเสี่ยง')">⚠️ Risk Status</button>
+          </div>
+
+          <div class="chat-messages" id="chat-messages"></div>
+
+          <div class="chat-input-row">
+            <input
+              type="text"
+              id="chat-input"
+              class="chat-input"
+              placeholder="Ask Luna..."
+              onkeypress="handleChatKey(event)"
+            />
+            <button class="btn-send" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>⚙️ Bot Settings</h2>
+          <button class="btn-close" onclick="closeSettings()">✕</button>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Trading Mode -->
+          <div class="setting-group">
+            <label class="setting-label">Trading Mode</label>
+            <select id="tradingMode" class="setting-select">
+              <option value="paper">📄 Paper Trading (Demo)</option>
+              <option value="live">🔴 Live Trading (Real $)</option>
+            </select>
+            <div class="setting-desc">Demo = no real money. Live = actual trading.</div>
+          </div>
+
+          <!-- Trade Amount -->
+          <div class="setting-group">
+            <label class="setting-label">Trade Amount ($)</label>
+            <input
+              id="tradeAmount"
+              type="number"
+              class="setting-input"
+              placeholder="100"
+              min="10"
+            />
+            <div class="setting-desc">Amount per trade (% of balance)</div>
+          </div>
+
+          <!-- Balance -->
+          <div class="setting-group">
+            <label class="setting-label">Account Balance</label>
+            <input
+              id="accountBalance"
+              type="number"
+              class="setting-input"
+              placeholder="10000"
+              min="0"
+            />
+            <div class="setting-desc">Starting/current balance</div>
+          </div>
+
+          <!-- Asset Selection -->
+          <div class="setting-group">
+            <label class="setting-label">Trading Asset</label>
+            <select id="tradingAsset" class="setting-select">
+              <option value="EURUSD-OTC">💶 EURUSD-OTC</option>
+              <option value="GBPUSD-OTC">💷 GBPUSD-OTC</option>
+              <option value="USDJPY">¥ USDJPY</option>
+              <option value="BTCUSD">₿ BTCUSD</option>
+            </select>
+            <div class="setting-desc">Select trading pair</div>
+          </div>
+
+          <!-- Session Filter -->
+          <div class="setting-group">
+            <label class="setting-label">Session Filter</label>
+            <div class="setting-toggle">
+              <button
+                class="toggle-switch active"
+                id="sessionFilter"
+                onclick="toggleSetting(this)"
+              ></button>
+              <span id="sessionFilterText">Enabled</span>
+            </div>
+            <div class="setting-desc">Block trades outside London/NY</div>
+          </div>
+
+          <!-- News Filter -->
+          <div class="setting-group">
+            <label class="setting-label">Economic Calendar</label>
+            <div class="setting-toggle">
+              <button
+                class="toggle-switch active"
+                id="newsFilter"
+                onclick="toggleSetting(this)"
+              ></button>
+              <span id="newsFilterText">Enabled</span>
+            </div>
+            <div class="setting-desc">Avoid trading during high impact news</div>
+          </div>
+
+          <!-- Volatility Filter -->
+          <div class="setting-group">
+            <label class="setting-label">Volatility Filter</label>
+            <div class="setting-toggle">
+              <button
+                class="toggle-switch active"
+                id="volatilityFilter"
+                onclick="toggleSetting(this)"
+              ></button>
+              <span id="volatilityFilterText">Enabled</span>
+            </div>
+            <div class="setting-desc">Block trades during extreme volatility</div>
+          </div>
+
+          <!-- Live Trading Toggle -->
+          <div class="setting-group">
+            <label class="setting-label">Live Trading</label>
+            <div class="setting-toggle">
+              <button class="toggle-switch" id="liveTrading" onclick="toggleSetting(this)"></button>
+              <span id="liveTradingText">Disabled</span>
+            </div>
+            <div class="setting-desc">⚠️ Enable only after full testing!</div>
+          </div>
+
+          <!-- Max Daily Loss -->
+          <div class="setting-group">
+            <label class="setting-label">Max Daily Loss (%)</label>
+            <input
+              id="maxDailyLoss"
+              type="number"
+              class="setting-input"
+              placeholder="6"
+              min="1"
+              max="20"
+            />
+            <div class="setting-desc">Stop trading if loss exceeds</div>
+          </div>
+
+          <!-- Consecutive Loss Limit -->
+          <div class="setting-group">
+            <label class="setting-label">Consecutive Loss Limit</label>
+            <input
+              id="consecutiveLossLimit"
+              type="number"
+              class="setting-input"
+              placeholder="3"
+              min="1"
+              max="10"
+            />
+            <div class="setting-desc">Cooldown after N consecutive losses</div>
+          </div>
+
+          <!-- Aggression Mode -->
+          <div class="setting-group">
+            <label class="setting-label">Trading Mode (Aggression)</label>
+            <select id="aggressionMode" class="setting-select">
+              <option value="NORMAL">🛡️ NORMAL (3+ signals, safest)</option>
+              <option value="AGGRESSIVE">⚡ AGGRESSIVE (2+ signals, more trades)</option>
+              <option value="SUPER">🔥 SUPER (2+ signals, very aggressive)</option>
+              <option value="MEGA">💥 MEGA (2+ signals, maximum trades)</option>
+            </select>
+            <div class="setting-desc">Higher = more frequent trading, higher risk</div>
+          </div>
+
+          <!-- RSI Settings -->
+          <div class="setting-group">
+            <label class="setting-label">RSI Period</label>
+            <input
+              id="rsiPeriod"
+              type="number"
+              class="setting-input"
+              placeholder="14"
+              min="5"
+              max="50"
+            />
+            <div class="setting-desc">RSI indicator period</div>
+          </div>
+
+          <!-- MACD Settings -->
+          <div class="setting-group">
+            <label class="setting-label">MACD Fast Period</label>
+            <input
+              id="macdFast"
+              type="number"
+              class="setting-input"
+              placeholder="12"
+              min="5"
+              max="30"
+            />
+            <div class="setting-desc">MACD fast EMA</div>
+          </div>
+
+          <!-- Strategy Confidence -->
+          <div class="setting-group">
+            <label class="setting-label">Min Signal Confidence (%)</label>
+            <input
+              id="minConfidence"
+              type="number"
+              class="setting-input"
+              placeholder="70"
+              min="50"
+              max="100"
+            />
+            <div class="setting-desc">Require 70%+ agreement from indicators</div>
+          </div>
+
+          <!-- Time Zone -->
+          <div class="setting-group">
+            <label class="setting-label">Time Zone</label>
+            <select id="timezone" class="setting-select">
+              <option value="Bangkok">🇹🇭 Bangkok (GMT+7)</option>
+              <option value="UTC">🌍 UTC/GMT</option>
+              <option value="London">🇬🇧 London (GMT)</option>
+              <option value="NewYork">🇺🇸 New York (EST)</option>
+            </select>
+            <div class="setting-desc">Your local timezone</div>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button class="btn-save" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Clock update
+      function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+        document.getElementById('clock').textContent = timeStr;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Settings Modal
+      function openSettings() {
+        document.getElementById('settingsModal').classList.add('active');
+      }
+
+      function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+      }
+
+      function toggleSetting(btn) {
+        btn.classList.toggle('active');
+        const textId = btn.id + 'Text';
+        const textEl = document.getElementById(textId);
+        if (textEl) {
+          textEl.textContent = btn.classList.contains('active') ? 'Enabled' : 'Disabled';
+        }
+      }
+
+      function saveSettings() {
+        const settings = {
+          tradingMode: document.getElementById('tradingMode').value,
+          tradeAmount: document.getElementById('tradeAmount').value,
+          accountBalance: document.getElementById('accountBalance').value,
+          tradingAsset: document.getElementById('tradingAsset').value,
+          sessionFilter: document.getElementById('sessionFilter').classList.contains('active'),
+          newsFilter: document.getElementById('newsFilter').classList.contains('active'),
+          volatilityFilter: document
+            .getElementById('volatilityFilter')
+            .classList.contains('active'),
+          liveTrading: document.getElementById('liveTrading').classList.contains('active'),
+          maxDailyLoss: document.getElementById('maxDailyLoss').value,
+          consecutiveLossLimit: document.getElementById('consecutiveLossLimit').value,
+          rsiPeriod: document.getElementById('rsiPeriod').value,
+          macdFast: document.getElementById('macdFast').value,
+          minConfidence: document.getElementById('minConfidence').value,
+          timezone: document.getElementById('timezone').value,
+          aggressionMode: document.getElementById('aggressionMode').value,
+        };
+
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            alert('✅ Settings saved!');
+            updateAggressionMode();
+            closeSettings();
+          })
+          .catch((err) => {
+            alert('❌ Error saving settings');
+            console.error(err);
+          });
+      }
+
+      // ==================== PAUSE/RESUME FUNCTIONS ====================
+      let isBotPaused = false;
+
+      function togglePauseResume() {
+        const btn = document.getElementById('pauseResumeBtn');
+        if (isBotPaused) {
+          // Resume the bot
+          fetch('/api/resume', { method: 'POST' })
+            .then((r) => r.json())
+            .then((data) => {
+              isBotPaused = false;
+              btn.textContent = '⏸️ Pause';
+              btn.classList.remove('paused');
+              updateLunaState('talking');
+              addChatMessage('เริ่มเทรดต่อแล้วค่ะ! 🚀', 'luna');
+              console.log('✅ Bot resumed');
+            })
+            .catch((err) => {
+              alert('❌ Error resuming bot');
+              console.error(err);
+            });
+        } else {
+          // Pause the bot
+          fetch('/api/pause', { method: 'POST' })
+            .then((r) => r.json())
+            .then((data) => {
+              isBotPaused = true;
+              btn.textContent = '▶️ Resume';
+              btn.classList.add('paused');
+              updateLunaState('stressed');
+              addChatMessage('หยุดเทรดตามคำขอค่ะ ⏸️', 'luna');
+              console.log('✅ Bot paused');
+            })
+            .catch((err) => {
+              alert('❌ Error pausing bot');
+              console.error(err);
+            });
+        }
+      }
+
+      // Chat functions
+      function ask(question) {
+        const input = document.getElementById('chat-input');
+        input.value = question;
+        sendChat();
+      }
+
+      function handleChatKey(e) {
+        if (e.key === 'Enter') {
+          sendChat();
+        }
+      }
+
+      function sendChat() {
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Add user message
+        addChatMessage(message, 'user');
+        input.value = '';
+
+        // Send to server
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            addChatMessage(data.reply, 'luna');
+            updateLunaState('talking');
+            setTimeout(() => updateLunaState('idle'), 2000);
+          })
+          .catch((err) => {
+            addChatMessage('ขอโทษค่ะ ไม่สามารถตอบได้', 'luna');
+            console.error(err);
+          });
+      }
+
+      function addChatMessage(text, sender) {
+        const chatBox = document.getElementById('chat-messages');
+        const msgEl = document.createElement('div');
+        msgEl.className = `msg ${sender}`;
+        msgEl.textContent = text;
+        chatBox.appendChild(msgEl);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function updateLunaState(state) {
+        const imageMap = {
+          idle: '/luna-images/3.png',
+          thinking: '/luna-images/1.png',
+          talking: '/luna-images/2.png',
+          stressed: '/luna-images/4.png',
+        };
+        const img = document.getElementById('luna-image');
+        img.src = imageMap[state] || imageMap.idle;
+        img.onerror = () => {
+          console.warn('Luna image failed to load, using fallback');
+          img.style.background = 'linear-gradient(135deg, #a78bfa, #60a5fa)';
+          img.src =
+            'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext x=%2250%22 y=%2250%22 font-size=%2250%22 text-anchor=%22middle%22%3E✨%3C/text%3E%3C/svg%3E';
+        };
+      }
+
+      // ==================== RECENT TRADES UPDATE ====================
+      function updateRecentTrades() {
+        fetch('/api/trades')
+          .then((r) => r.json())
+          .then((trades) => {
+            const tbody = document.querySelector('#trades-table tbody');
+            if (!tbody || !Array.isArray(trades)) return;
+
+            // Clear existing rows except if empty
+            tbody.innerHTML = '';
+
+            if (trades.length === 0) {
+              tbody.innerHTML = `
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--muted);">
+                    ⏳ No trades yet...
+                  </td>
+                </tr>
+              `;
+              return;
+            }
+
+            // Add each trade to table
+            trades.forEach((trade) => {
+              const row = document.createElement('tr');
+              const time = new Date(trade.timestamp).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              });
+
+              const isWin = trade.result === 'WIN';
+              const isLoss = trade.result === 'LOSS';
+              const isPending = !isWin && !isLoss;
+              const resultClass = isWin ? 'win' : isLoss ? 'loss' : '';
+              const badgeText = isPending ? 'PENDING' : trade.result;
+              const pnlColor = isPending
+                ? 'var(--muted)'
+                : trade.pnl >= 0
+                  ? 'var(--green)'
+                  : 'var(--red)';
+              const pnlText = isPending
+                ? '—'
+                : `${trade.pnl >= 0 ? '+' : ''}$${trade.pnl?.toFixed(2) || '0.00'}`;
+
+              row.innerHTML = `
+                <td>${time}</td>
+                <td>${trade.asset || '-'}</td>
+                <td>${trade.direction || '-'}</td>
+                <td>$${trade.amount?.toFixed(2) || '0.00'}</td>
+                <td><span class="badge ${resultClass}">${badgeText}</span></td>
+                <td style="color: ${pnlColor}; font-weight: 700;">
+                  ${pnlText}
+                </td>
+              `;
+              tbody.appendChild(row);
+            });
+          })
+          .catch((err) => console.error('Trades update error:', err));
+      }
+
+      // Status updates
+      function updateStatus() {
+        fetch('/api/status')
+          .then((r) => r.json())
+          .then((data) => {
+            const summary = data.summary || {};
+            const balance = parseFloat(data.balance) || parseFloat(summary.balance) || 0;
+            const winRate = data.winRate || summary.winRate || '0.0';
+            const todayPnL = parseFloat(data.todayPnL ?? data.dailyPnL ?? summary.todayPnL) || 0;
+            const totalTrades = summary.totalTrades || 0;
+            const streak = data.streak ?? summary.consecutiveWins ?? summary.consecutiveLosses ?? 0;
+            const streakType = data.streakType ||
+              (summary.consecutiveWins > 0 ? 'win' : summary.consecutiveLosses > 0 ? 'loss' : 'none');
+
+            document.getElementById('balance').textContent = `$${balance.toFixed(2)}`;
+            document.getElementById('win-rate').textContent =
+              `${String(winRate).includes('%') ? winRate : winRate + '%'}`;
+            document.getElementById('daily-pnl').textContent =
+              `${todayPnL >= 0 ? '+' : ''}$${todayPnL.toFixed(2)}`;
+            document.getElementById('daily-pnl').style.color =
+              todayPnL >= 0 ? 'var(--green)' : 'var(--red)';
+
+            const totalTradesEl = document.getElementById('total-trades');
+            if (totalTradesEl) {
+              totalTradesEl.textContent = `${totalTrades} trades`;
+            }
+
+            const streakEl = document.getElementById('streak');
+            const streakTypeEl = document.getElementById('streak-type');
+            if (streakEl) {
+              streakEl.textContent = String(streak);
+              streakEl.style.color =
+                streakType === 'win' ? 'var(--green)' : streakType === 'loss' ? 'var(--red)' : '';
+            }
+            if (streakTypeEl) {
+              streakTypeEl.textContent =
+                streakType === 'win'
+                  ? `🔥 ${streak} wins in a row`
+                  : streakType === 'loss'
+                    ? `❄️ ${streak} losses in a row`
+                    : 'Waiting...';
+            }
+
+            const statusNorm = String(data.status || '').toUpperCase();
+            const isRunning = statusNorm === 'RUNNING' && !data.paused;
+            document.getElementById('status').textContent =
+              `${isRunning ? '🟢' : '🔴'} ${data.paused ? 'PAUSED' : data.status || 'Unknown'}`;
+
+            // Update indicators
+            const indicators = data.indicators || data.liveIndicators || {};
+            if (indicators) {
+              const { rsi, macd, bb } = indicators;
+              document.getElementById('rsi-val').textContent = rsi?.toFixed(1) || '0';
+              document.getElementById('rsi-bar').style.width =
+                Math.min(100, Math.max(0, (rsi || 50) * 2)) + '%';
+
+              document.getElementById('macd-val').textContent = macd?.toFixed(3) || '0';
+              document.getElementById('bb-val').textContent = bb
+                ? `${(bb * 100).toFixed(1)}%`
+                : '0%';
+            }
+          })
+          .catch((err) => console.error('Status error:', err));
+      }
+
+      // Chart instance
+      let candleChart = null;
+
+      // Update candle chart
+      function updateCandleChart() {
+        fetch('/api/candles?limit=50')
+          .then((r) => r.json())
+          .then((data) => {
+            const { candles } = data;
+            if (!candles || candles.length === 0) return;
+
+            const labels = candles.map((c) => {
+              const time = new Date(c.time);
+              return time.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              });
+            });
+
+            const closeData = candles.map((c) => parseFloat(c.close || 0));
+
+            const ctx = document.getElementById('candleChart')?.getContext('2d');
+            if (!ctx) return;
+
+            if (candleChart) {
+              candleChart.data.labels = labels;
+              candleChart.data.datasets[0].data = closeData;
+              candleChart.update();
+            } else {
+              candleChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: labels,
+                  datasets: [
+                    {
+                      label: 'Price',
+                      data: closeData,
+                      borderColor: '#00d4aa',
+                      backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                      borderWidth: 2,
+                      tension: 0.3,
+                      fill: true,
+                      pointBackgroundColor: '#7c3aed',
+                      pointBorderWidth: 0,
+                      pointRadius: 3,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  plugins: {
+                    legend: {
+                      display: true,
+                      labels: { color: '#e8eaf0', font: { size: 14 } },
+                    },
+                  },
+                  scales: {
+                    y: {
+                      grid: { color: 'rgba(124, 58, 237, 0.1)' },
+                      ticks: { color: '#64748b', font: { size: 12 } },
+                    },
+                    x: {
+                      grid: { color: 'rgba(124, 58, 237, 0.1)' },
+                      ticks: { color: '#64748b', font: { size: 12 } },
+                    },
+                  },
+                },
+              });
+            }
+          })
+          .catch((err) => console.error('Candle chart error:', err));
+      }
+
+      // ==================== TRADING CONTROL FUNCTIONS ====================
+      let currentAggression = 'NORMAL';
+
+      function testTrade() {
+        fetch('/api/test-trade', { method: 'POST' })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) {
+              addChatMessage('✅ Test trade executed! ' + (data.result?.direction || ''), 'luna');
+              updateRecentTrades();
+            } else {
+              addChatMessage('❌ Test trade failed: ' + data.error, 'luna');
+            }
+          })
+          .catch((err) => {
+            addChatMessage('❌ Error: ' + err.message, 'luna');
+            console.error(err);
+          });
+      }
+
+      function manualCall() {
+        const amount = prompt('💚 CALL Amount ($):', '100');
+        if (!amount) return;
+
+        fetch('/api/manual-trade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction: 'CALL', amount: parseFloat(amount) }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) {
+              addChatMessage('📈 ✅ CALL trade placed! Amount: $' + amount, 'luna');
+              updateRecentTrades();
+            } else {
+              addChatMessage('📈 ❌ CALL failed: ' + data.error, 'luna');
+            }
+          })
+          .catch((err) => {
+            addChatMessage('❌ Error: ' + err.message, 'luna');
+            console.error(err);
+          });
+      }
+
+      function manualPut() {
+        const amount = prompt('🔴 PUT Amount ($):', '100');
+        if (!amount) return;
+
+        fetch('/api/manual-trade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction: 'PUT', amount: parseFloat(amount) }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) {
+              addChatMessage('📉 ✅ PUT trade placed! Amount: $' + amount, 'luna');
+              updateRecentTrades();
+            } else {
+              addChatMessage('📉 ❌ PUT failed: ' + data.error, 'luna');
+            }
+          })
+          .catch((err) => {
+            addChatMessage('❌ Error: ' + err.message, 'luna');
+            console.error(err);
+          });
+      }
+
+      function updateAggressionMode() {
+        const aggression = document.getElementById('aggressionMode')?.value || 'NORMAL';
+        currentAggression = aggression;
+
+        fetch('/api/set-aggression', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ aggressiveMode: aggression }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            const badge = document.getElementById('aggressionBadge');
+            if (badge) {
+              const icons = {
+                NORMAL: '🛡️ NORMAL',
+                AGGRESSIVE: '⚡ AGGRESSIVE',
+                SUPER: '🔥 SUPER',
+                MEGA: '💥 MEGA',
+              };
+              badge.textContent = icons[aggression] || aggression;
+              badge.classList.toggle('aggressive', aggression !== 'NORMAL');
+            }
+            addChatMessage(
+              `🎯 Mode changed to ${aggression} (${
+                aggression === 'NORMAL'
+                  ? 'safest'
+                  : aggression === 'AGGRESSIVE'
+                    ? 'more trades'
+                    : aggression === 'SUPER'
+                      ? 'very aggressive'
+                      : 'maximum trades'
+              })`,
+              'luna'
+            );
+          })
+          .catch((err) => console.error('Aggression mode error:', err));
+      }
+
+      setInterval(updateStatus, 2000);
+      setInterval(updateCandleChart, 3000);
+      setInterval(updateRecentTrades, 2500);
+      updateStatus();
+      updateCandleChart();
+      updateRecentTrades();
+
+      // Initialize
+      addChatMessage('สวัสดีค่ะ! ฉันคือ Luna 🤖 พร้อมช่วยเหลือคุณในการเทรด', 'luna');
+    </script>
+  </body>
+</html>

@@ -43,8 +43,8 @@ module.exports = {
   MEGA_AGGRESSIVE_MAX_TRADE_PERCENT:
     parseInt(process.env.MEGA_AGGRESSIVE_MAX_TRADE_PERCENT, 10) || 10,
   ASSET_ACTIVE_ID: process.env.ASSET_ACTIVE_ID
-    ? parseInt(process.env.ASSET_ACTIVE_ID, 10) || 76
-    : 76, // optional explicit IQ Option asset active_id
+    ? Number.parseInt(process.env.ASSET_ACTIVE_ID, 10) || null
+    : null,
   CANDLE_DURATION: parseInt(process.env.CANDLE_DURATION, 10) || 60, // 1-minute candles (seconds)
   OPTION_DURATION: parseInt(process.env.OPTION_DURATION, 10) || 1, // 1-minute binary options
 
@@ -152,7 +152,7 @@ module.exports = {
 ╠════════════════════════════════════════════════════════════╣
 ║ Account Type:      ${this.ACCOUNT_TYPE}
 ║ Asset:             ${this.CURRENCY_PAIR}
-║ Asset Active ID:   ${this.ASSET_ACTIVE_ID || 'not set'}
+║ Asset Active ID:   ${this.ASSET_ACTIVE_ID || 'auto-resolved from symbol'}
 ║ Candle Duration:   ${this.CANDLE_DURATION}s
 ║ Paper Trade Mode:  ${this.PAPER_TRADE_MODE ? '✅ ON (SAFE)' : '⚠️  OFF (LIVE MONEY)'}
 ║ Order Mode:       ${this.PAPER_TRADE_MODE ? '🚦 Paper simulation (no broker orders)' : '⚠️  Broker orders enabled'}

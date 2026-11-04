@@ -394,7 +394,7 @@ class IQConnector extends EventEmitter {
   /**
    * Resolve IQ Option asset active_id from symbol, name, or environment override.
    * @param {string|number} asset
-   * @returns {number}
+   * @returns {number[]}
    */
   resolveAssetIds(asset) {
     if (config.ASSET_ACTIVE_ID) {
@@ -411,50 +411,38 @@ class IQConnector extends EventEmitter {
       );
     }
 
-    const normalized = String(asset).trim().toUpperCase().replace(/\s+/g, '').replace(/\//g, '');
+    const rawAsset = String(asset).trim().toUpperCase();
+    const requestedIsOtc = /(?:-\s*OTC|\(\s*OTC\s*\)|\s+OTC)$/i.test(rawAsset);
+    const normalized = rawAsset.replace(/\bOTC\b/g, '').replace(/[^A-Z0-9]/g, '');
     const allAssets = IQOptionAPI.assets();
     if (!Array.isArray(allAssets)) {
       throw new Error(`IQ Option assets list is unavailable. Cannot resolve '${asset}'.`);
     }
 
-    const candidates = [];
-    const directByName = IQOptionAPI.assets(String(asset));
-    if (directByName && directByName.active_id) {
-      candidates.push(directByName.active_id);
-    }
+    const candidates = allAssets
+      .filter((item) => {
+        const name = String(item.name || '').toUpperCase();
+        const ticker = String(item.ticker || '').toUpperCase();
+        const itemIsOtc = /\bOTC\b/i.test(name) || /-OTC$/i.test(ticker);
+        const normalizedTicker = ticker.replace(/\bOTC\b/g, '').replace(/[^A-Z0-9]/g, '');
+        const normalizedName = name.replace(/\bOTC\b/g, '').replace(/[^A-Z0-9]/g, '');
+        return (
+          item.active_id &&
+          itemIsOtc === requestedIsOtc &&
+          (normalizedTicker === normalized || normalizedName === normalized)
+        );
+      })
+      .map((item) => item.active_id);
 
-    const directByTicker = IQOptionAPI.assets(normalized);
-    if (
-      directByTicker &&
-      directByTicker.active_id &&
-      !candidates.includes(directByTicker.active_id)
-    ) {
-      candidates.push(directByTicker.active_id);
-    }
+    const uniqueCandidates = [...new Set(candidates)];
 
-    allAssets.forEach((item) => {
-      const ticker = String(item.ticker || '').toUpperCase();
-      const name = String(item.name || '')
-        .toUpperCase()
-        .replace(/\s+/g, '')
-        .replace(/\//g, '');
-
-      if (
-        (ticker === normalized || name === normalized) &&
-        item.active_id &&
-        !candidates.includes(item.active_id)
-      ) {
-        candidates.push(item.active_id);
-      }
-    });
-
-    if (candidates.length === 0) {
+    if (uniqueCandidates.length === 0) {
       throw new Error(
         `Could not resolve asset id for '${asset}'. Set ASSET_ACTIVE_ID in .env or use a supported asset ticker/name.`
       );
     }
 
-    return candidates;
+    return uniqueCandidates;
   }
 
   /**
@@ -657,14 +645,12 @@ class IQConnector extends EventEmitter {
       throw new Error(`Invalid trade amount: ${amount}`);
     }
 
-    const suspendedUntil = this.suspendedAssets.get(asset);
-    if (suspendedUntil > Date.now()) {
-      const remainingMinutes = Math.ceil((suspendedUntil - Date.now()) / 60000);
+    const suspension = this.suspendedAssets.get(asset);
+    if (suspension) {
       throw new Error(
-        `${asset} is temporarily blocked after a broker suspension (${remainingMinutes}m)`
+        `${asset} active ${suspension.activeId} was suspended by the broker; trading is blocked for this session`
       );
     }
-    this.suspendedAssets.delete(asset);
 
     try {
       logger.info(`📈 Placing trade: ${direction} ${amount} ${asset} ${duration}m`);
@@ -707,8 +693,9 @@ class IQConnector extends EventEmitter {
           if (option && option.message) {
             lastError = new Error(option.message);
             if (this.isSuspendedError(option)) {
-              this.suspendedAssets.set(asset, Date.now() + 5 * 60 * 1000);
-              logger.warn(`⚠️ Active ${activeId} is suspended. Blocking ${asset} for 5 minutes.`);
+              this.suspendedAssets.set(asset, { activeId, detectedAt: Date.now() });
+              logger.warn(`⚠️ Active ${activeId} is suspended. Blocking ${asset} for this session.`);
+              break;
             }
           }
 
@@ -716,13 +703,6 @@ class IQConnector extends EventEmitter {
             this.suspendedAssets.delete(asset);
             logger.info(`✅ Successfully placed order using active_id=${activeId}`);
             break;
-          }
-
-          if (this.isSuspendedError(lastError) && activeIds.length > 1) {
-            logger.warn(
-              `⚠️ Active ${activeId} failed. Trying next matching asset id if available.`
-            );
-            continue;
           }
 
           if (lastError) {

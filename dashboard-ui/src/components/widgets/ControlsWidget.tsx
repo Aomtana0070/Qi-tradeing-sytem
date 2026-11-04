@@ -16,6 +16,7 @@ export function ControlsWidget({ status }: Props) {
   const [error, setError] = useState('');
   const paused = status?.paused ?? false;
   const canTradeManually = status?.status?.toUpperCase() === 'RUNNING' && !paused;
+  const executionIssue = status?.metrics?.executionIssue;
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -36,6 +37,11 @@ export function ControlsWidget({ status }: Props) {
         <p className="mt-1 text-sm text-ink-faint">
           {status?.currentAsset} · {status?.aggressiveMode ?? 'NORMAL'}
         </p>
+        {executionIssue && (
+          <p role="status" className="mt-2 text-xs leading-relaxed text-amber-300">
+            {executionIssue.asset}: {executionIssue.message}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -69,6 +69,12 @@ export interface BotStatus {
       reason?: string;
       model?: string;
     };
+    executionIssue?: {
+      type: string;
+      asset: string;
+      message: string;
+      timestamp: number;
+    } | null;
   };
   indicators?: Record<string, number>;
   liveIndicators?: Record<string, number>;

@@ -849,11 +849,22 @@ class TradingBot {
           this.dashboardServer.updateMetrics({
             lastTrade: { ...tradeResult, confidence: validSignal.confidence },
             lastSignal: validSignal,
+            executionIssue: null,
           });
         }
       }
     } catch (error) {
       logger.error('Error in candle processing', error);
+      if (this.dashboardServer) {
+        this.dashboardServer.updateMetrics({
+          executionIssue: {
+            type: this.iqConnector.isSuspendedError(error) ? 'ASSET_SUSPENDED' : 'EXECUTION_ERROR',
+            asset: this.currentAsset,
+            message: error.message,
+            timestamp: Date.now(),
+          },
+        });
+      }
     } finally {
       this._candleProcessing = false;
     }

@@ -14,7 +14,7 @@ const sections = [
       ],
       [
         '3. Market filters',
-        'Session, economic-calendar, volatility, circuit-breaker, capital-preservation, and cooldown checks can block a signal before an order is considered.',
+        'Session, economic-calendar, volatility, circuit-breaker, capital-preservation, cooldown, and broker market-suspension checks can block an order. A broker-suspended active is not bypassed by trying a different ID.',
         'Active',
       ],
       [

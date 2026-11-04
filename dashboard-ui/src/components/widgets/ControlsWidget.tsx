@@ -13,12 +13,17 @@ interface Props {
 export function ControlsWidget({ status }: Props) {
   const [amount, setAmount] = useState(30);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const paused = status?.paused ?? false;
+  const canTradeManually = status?.status?.toUpperCase() === 'RUNNING' && !paused;
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
+    setError('');
     try {
       await fn();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Request failed');
     } finally {
       setBusy(false);
     }
@@ -69,19 +74,24 @@ export function ControlsWidget({ status }: Props) {
       <div className="mt-auto grid grid-cols-2 gap-2">
         <MagneticButton
           variant="success"
-          disabled={busy}
+          disabled={busy || !canTradeManually}
           onClick={() => act(() => api.manualTrade('CALL', amount))}
         >
           CALL ↑
         </MagneticButton>
         <MagneticButton
           variant="danger"
-          disabled={busy}
+          disabled={busy || !canTradeManually}
           onClick={() => act(() => api.manualTrade('PUT', amount))}
         >
           PUT ↓
         </MagneticButton>
       </div>
+      {error && (
+        <p role="alert" className="text-xs leading-relaxed text-rose-300">
+          {error}
+        </p>
+      )}
     </GlassPanel>
   );
 }

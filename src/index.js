@@ -20,6 +20,7 @@ const CandleStore = require('./data/candleStore');
 const indicators = require('./data/indicators');
 const advancedStrategy = require('./strategy/advancedStrategy');
 const signalFilter = require('./strategy/signalFilter');
+const ClaudeSignalReview = require('./strategy/claudeSignalReview');
 const telegram = require('./logger/telegram');
 const RiskManager = require('./risk/riskManager');
 const OrderManager = require('./execution/orderManager');
@@ -38,6 +39,7 @@ class TradingBot {
     this.iqConnector = new IQConnector();
     this.candleStore = new CandleStore();
     this.riskManager = new RiskManager();
+    this.claudeSignalReview = new ClaudeSignalReview();
     this.tradeLogger = tradeLogger;
     this.orderManager = null;
     this.currentAsset = config.CURRENCY_PAIR;
@@ -358,6 +360,9 @@ class TradingBot {
 
       this.isRunning = true;
       this.sessionStartTime = Date.now();
+      if (this.dashboardServer) {
+        this.dashboardServer.updateMetrics({ status: 'RUNNING', paused: this.isPaused });
+      }
 
       logger.success('✅ Bot started successfully');
       logger.separator();
@@ -378,6 +383,10 @@ class TradingBot {
 
     if (config.PAPER_TRADE_MODE && config.ACCOUNT_TYPE !== 'PRACTICE') {
       throw new Error('Paper mode requires ACCOUNT_TYPE=PRACTICE');
+    }
+
+    if (config.CLAUDE_TRADE_REVIEW_ENABLED && !process.env.ANTHROPIC_API_KEY) {
+      throw new Error('CLAUDE_TRADE_REVIEW_ENABLED requires ANTHROPIC_API_KEY');
     }
 
     if (!config.PAPER_TRADE_MODE && !process.env.IQ_EMAIL) {
@@ -487,6 +496,9 @@ class TradingBot {
   }
 
   async executeManualTrade(tradeRequest = {}) {
+    if (this.isPaused) {
+      throw new Error('Bot is paused; manual trading is disabled');
+    }
     if (!this.orderManager) {
       throw new Error('Bot has not finished initialization yet');
     }
@@ -746,6 +758,35 @@ class TradingBot {
       if (!this.orderManager.canPlaceTrade()) {
         logger.debug('⏸️  Rate limit — waiting for next trade slot');
         return;
+      }
+
+      const claudeReview = await this.claudeSignalReview.review({
+        asset: this.currentAsset,
+        direction: validSignal.signal,
+        confidence: validSignal.confidence,
+        reasons: validSignal.reasons,
+        trend: validSignal.trend,
+        indicators: {
+          rsi: validSignal.indicators?.rsi,
+          adx: validSignal.indicators?.adx,
+          atrPct: validSignal.atrPct,
+        },
+      });
+      if (!claudeReview.approved) {
+        logger.warn(`Claude vetoed candidate: ${claudeReview.reason}`);
+        if (this.dashboardServer) {
+          this.dashboardServer.updateMetrics({
+            claudeSignalReview: claudeReview,
+            lastSignal: { ...validSignal, claudeReview },
+          });
+        }
+        return;
+      }
+      if (this.dashboardServer) {
+        this.dashboardServer.updateMetrics({
+          claudeSignalReview: claudeReview,
+          lastSignal: { ...validSignal, claudeReview },
+        });
       }
 
       logger.info(

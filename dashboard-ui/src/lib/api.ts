@@ -4,8 +4,9 @@ const BASE = '';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);
-  if (!res.ok) throw new Error(`API ${path}: ${res.status}`);
-  return res.json();
+  const body = await res.json();
+  if (!res.ok) throw new Error(body?.error || `API ${path}: ${res.status}`);
+  return body as T;
 }
 
 export const api = {

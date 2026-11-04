@@ -95,9 +95,9 @@ class OrderManager {
           const balanceAfter =
             typeof result.balanceAfter === 'number'
               ? result.balanceAfter
-              : await this.iqConnector.getBalance().catch(() =>
-                  currentBalance + (typeof result.pnl === 'number' ? result.pnl : 0)
-                );
+              : await this.iqConnector
+                  .getBalance()
+                  .catch(() => currentBalance + (typeof result.pnl === 'number' ? result.pnl : 0));
 
           await this.tradeLogger.logTrade({
             timestamp: new Date(),
@@ -133,7 +133,7 @@ class OrderManager {
       }
     } catch (error) {
       logger.error('❌ Trade execution failed', error);
-      return null;
+      throw error;
     } finally {
       this.tradeInProgress = false;
     }
@@ -186,10 +186,7 @@ class OrderManager {
 
     const timeSinceLastTrade = Date.now() - this.lastTradeTime;
     const optionMs = (config.OPTION_DURATION || 1) * 60 * 1000;
-    const minGapMs = Math.max(
-      config.MIN_SECONDS_BETWEEN_TRADES * 1000,
-      optionMs + 5000
-    );
+    const minGapMs = Math.max(config.MIN_SECONDS_BETWEEN_TRADES * 1000, optionMs + 5000);
     return timeSinceLastTrade >= minGapMs;
   }
 

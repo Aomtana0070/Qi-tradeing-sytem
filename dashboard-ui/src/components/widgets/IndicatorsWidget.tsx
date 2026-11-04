@@ -27,6 +27,8 @@ function IndicatorBar({ label, value, max = 100 }: { label: string; value: numbe
 
 export function IndicatorsWidget({ status }: Props) {
   const ind = status?.liveIndicators || status?.indicators || {};
+  const claudeReview = status?.metrics?.claudeSignalReview;
+  const claudeEnabled = status?.settings?.claudeTradeReviewEnabled ?? false;
   const rsi = typeof ind.rsi === 'number' ? ind.rsi : 50;
   const macd = typeof ind.macd === 'number' ? ind.macd : 0;
   const bb = typeof ind.bb === 'number' ? ind.bb * 100 : 50;
@@ -40,6 +42,33 @@ export function IndicatorsWidget({ status }: Props) {
         <IndicatorBar label="RSI" value={rsi} />
         <IndicatorBar label="MACD" value={Math.abs(macd) * 100} max={100} />
         <IndicatorBar label="BB Position" value={bb} />
+        <div className="border-t border-[var(--border)] pt-3" aria-live="polite">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-ink-muted">Claude review</span>
+            <span
+              className={
+                !claudeEnabled
+                  ? 'text-ink-faint'
+                  : claudeReview?.approved
+                    ? 'text-emerald-300'
+                    : claudeReview
+                      ? 'text-rose-300'
+                      : 'text-amber-300'
+              }
+            >
+              {!claudeEnabled
+                ? 'Off'
+                : claudeReview
+                  ? claudeReview.approved
+                    ? 'Approved'
+                    : 'Vetoed'
+                  : 'Waiting for candidate'}
+            </span>
+          </div>
+          {claudeReview?.reason && (
+            <p className="mt-1 text-xs leading-relaxed text-ink-faint">{claudeReview.reason}</p>
+          )}
+        </div>
       </div>
     </GlassPanel>
   );

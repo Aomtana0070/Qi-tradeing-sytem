@@ -34,6 +34,7 @@ class IQConnector extends EventEmitter {
     this.sessionToken = null;
     this.accountType = null;
     this.candleHandlers = new Map();
+    this.suspendedAssets = new Map();
     this.candlesConnected = false;
     this.credentials = { email: null, password: null };
     this._connectionHandlersBound = false;
@@ -656,6 +657,15 @@ class IQConnector extends EventEmitter {
       throw new Error(`Invalid trade amount: ${amount}`);
     }
 
+    const suspendedUntil = this.suspendedAssets.get(asset);
+    if (suspendedUntil > Date.now()) {
+      const remainingMinutes = Math.ceil((suspendedUntil - Date.now()) / 60000);
+      throw new Error(
+        `${asset} is temporarily blocked after a broker suspension (${remainingMinutes}m)`
+      );
+    }
+    this.suspendedAssets.delete(asset);
+
     try {
       logger.info(`📈 Placing trade: ${direction} ${amount} ${asset} ${duration}m`);
 
@@ -675,8 +685,6 @@ class IQConnector extends EventEmitter {
         let option = null;
         let lastError = null;
 
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
         for (const activeId of activeIds) {
           const profitPercent =
             this.realClient.trading?.profits?.[
@@ -694,29 +702,18 @@ class IQConnector extends EventEmitter {
             returnMessage: true,
           };
 
-          const maxAttempts = 2;
-          for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-            option = await this.realClient.send('binary-options.open-option', openOptionRequest);
+          option = await this.realClient.send('binary-options.open-option', openOptionRequest);
 
-            if (option && option.message) {
-              lastError = new Error(option.message);
-              if (attempt < maxAttempts && this.isSuspendedError(option)) {
-                logger.warn(
-                  `⚠️ Active ${activeId} is suspended (attempt ${attempt}). Retrying once in 1s...`,
-                  option.message
-                );
-                await sleep(1000);
-                continue;
-              }
-              break;
-            }
-
-            if (option) {
-              break;
+          if (option && option.message) {
+            lastError = new Error(option.message);
+            if (this.isSuspendedError(option)) {
+              this.suspendedAssets.set(asset, Date.now() + 5 * 60 * 1000);
+              logger.warn(`⚠️ Active ${activeId} is suspended. Blocking ${asset} for 5 minutes.`);
             }
           }
 
           if (option && !option.message) {
+            this.suspendedAssets.delete(asset);
             logger.info(`✅ Successfully placed order using active_id=${activeId}`);
             break;
           }
@@ -725,7 +722,6 @@ class IQConnector extends EventEmitter {
             logger.warn(
               `⚠️ Active ${activeId} failed. Trying next matching asset id if available.`
             );
-            await sleep(1000);
             continue;
           }
 

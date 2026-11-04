@@ -58,6 +58,18 @@ export interface BotStatus {
     consecutiveLosses: number;
     balance?: string;
   };
+  settings?: {
+    claudeTradeReviewEnabled?: boolean;
+    claudeModel?: string;
+  };
+  metrics?: {
+    claudeSignalReview?: {
+      approved: boolean;
+      skipped?: boolean;
+      reason?: string;
+      model?: string;
+    };
+  };
   indicators?: Record<string, number>;
   liveIndicators?: Record<string, number>;
 }

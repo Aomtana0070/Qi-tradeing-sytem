@@ -63,6 +63,11 @@ const sections = [
         'Limited',
       ],
       [
+        'Claude signal review',
+        'Optional and disabled by default. When enabled in the local environment, Claude can veto a technical candidate only; it cannot choose CALL/PUT, set the amount, or bypass risk checks. If Claude is unavailable, the candidate is blocked.',
+        'Optional',
+      ],
+      [
         'Pause, resume, stop',
         'Pause prevents new automated trades; resume allows the loop to continue; stop shuts down the bot and disconnects. Stop does not cancel an order already submitted to the broker.',
         'Active',
@@ -114,7 +119,7 @@ const sections = [
       ],
       [
         'AI provider keys and AI toggles',
-        'The active assistant reads provider configuration from the server environment. Keys typed into dashboard settings are not used to configure the server.',
+        'The Gemini assistant and optional Claude reviewer read keys from the server environment. Keys typed into dashboard settings are not used to configure the server.',
         'UI only',
       ],
       [
@@ -130,6 +135,7 @@ const statusStyle: Record<string, string> = {
   Active: 'text-emerald-300',
   'Safety critical': 'text-amber-300',
   Limited: 'text-sky-300',
+  Optional: 'text-sky-300',
   Locked: 'text-amber-300',
   Display: 'text-ink-muted',
   'UI only': 'text-rose-300',

@@ -137,6 +137,8 @@ module.exports = {
   USE_MULTIPLE_TIMEFRAMES: false, // experimental: use 1m + 5m + 15m consensus
   USE_VOLUME_ANALYSIS: false, // experimental: include volume in signals
   USE_SUPPORT_RESISTANCE: false, // experimental: detect S/R levels
+  CLAUDE_TRADE_REVIEW_ENABLED: parseEnvBoolean(process.env.CLAUDE_TRADE_REVIEW_ENABLED, false),
+  CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-5-5',
   // ==================== ACCOUNT SETTINGS ====================
   ACCOUNT_CURRENCY: (process.env.ACCOUNT_CURRENCY || 'USD').trim().toUpperCase(),
   USD_TO_THB_RATE: parseFloat(process.env.USD_TO_THB_RATE) || 35,
@@ -167,6 +169,7 @@ module.exports = {
 ║   • Hard trade-size cap:   ${this.MAX_TRADE_PERCENT}% in every aggression mode
 ║   • Min Strategies Agree:  ${this.MIN_STRATEGIES_AGREE}/3
 ║   • Min Signal Strength:   ${this.MIN_SIGNAL_STRENGTH}%
+║   • Claude Review:         ${this.CLAUDE_TRADE_REVIEW_ENABLED ? `${this.CLAUDE_MODEL} (veto-only)` : 'OFF'}
 ║   • Candle Buffer:         ${this.CANDLE_BUFFER_SIZE} candles
 ║   • Session Filter:        ${this.SESSION_FILTER_ENABLED ? 'ENABLED' : 'DISABLED'}
 ║

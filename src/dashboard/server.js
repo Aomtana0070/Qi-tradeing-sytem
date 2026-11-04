@@ -67,7 +67,7 @@ class DashboardServer {
 
     // ✅ Global bot state
     this.botState = {
-      status: 'RUNNING',
+      status: 'STARTING',
       asset: config.CURRENCY_PAIR || 'EURUSD-OTC',
       balance: 0,
       indicators: {},
@@ -79,7 +79,7 @@ class DashboardServer {
 
     this.status = {
       app: 'IQ Option Trading Bot Dashboard',
-      status: 'starting',
+      status: 'STARTING',
       startedAt: new Date().toISOString(),
       lastUpdate: new Date().toISOString(),
       message: 'Dashboard initialized...',
@@ -134,6 +134,8 @@ class DashboardServer {
         sessionFilterEnabled: config.SESSION_FILTER_ENABLED,
 
         liveModeEnabled: !config.PAPER_TRADE_MODE,
+        claudeTradeReviewEnabled: config.CLAUDE_TRADE_REVIEW_ENABLED,
+        claudeModel: config.CLAUDE_MODEL,
       },
     };
 
@@ -461,6 +463,12 @@ class DashboardServer {
 
       try {
         const result = await this.onTestTrade();
+        if (!result || result.success === false) {
+          return res.status(503).json({
+            success: false,
+            error: result?.error || 'Trade was not accepted by the execution engine',
+          });
+        }
 
         this.status.lastTestTrade = result;
 
@@ -484,10 +492,22 @@ class DashboardServer {
     this.app.post('/api/manual-trade', async (req, res) => {
       const { direction, amount } = req.body || {};
 
-      if (!direction || !amount) {
+      if (!['CALL', 'PUT'].includes(String(direction || '').toUpperCase())) {
         return res.status(400).json({
           success: false,
-          error: 'direction and amount required',
+          error: 'direction must be CALL or PUT',
+        });
+      }
+
+      const tradeAmount = Number(amount);
+      if (!Number.isFinite(tradeAmount) || tradeAmount <= 0) {
+        return res.status(400).json({ success: false, error: 'amount must be a positive number' });
+      }
+
+      if (this.status.status !== 'RUNNING') {
+        return res.status(503).json({
+          success: false,
+          error: this.status.paused ? 'Bot is paused' : 'Bot is still initializing',
         });
       }
 
@@ -501,18 +521,24 @@ class DashboardServer {
       try {
         const result = await this.onManualTrade({
           direction: direction.toUpperCase(),
-          amount: parseFloat(amount),
+          amount: tradeAmount,
         });
 
         this.status.lastManualTrade = result;
         this.status.lastUpdate = new Date().toISOString();
 
-        logger.success(`📊 Manual ${direction} trade executed: $${amount}`);
+        if (!result || result.success === false) {
+          const error = result?.error || 'Trade was not accepted by the execution engine';
+          logger.warn(`Manual ${direction} trade rejected: ${error}`);
+          return res.status(503).json({ success: false, result, error });
+        }
+
+        logger.info(`📊 Manual ${direction} trade settled: $${tradeAmount}`);
 
         return res.json({
           success: true,
           result,
-          message: `✅ ${direction} trade placed: $${amount}`,
+          message: `Trade settled: ${direction} $${tradeAmount}`,
         });
       } catch (error) {
         logger.error(`❌ Manual trade error: ${error.message}`);
@@ -629,7 +655,8 @@ class DashboardServer {
         return reject(new Error('Dashboard host must be loopback; remote binding is disabled'));
       }
       this.server = this.app.listen(config.DASHBOARD_PORT, config.DASHBOARD_HOST, () => {
-        this.status.status = 'RUNNING';
+        this.status.status = 'STARTING';
+        this.botState.status = 'STARTING';
 
         logger.info(
           `🌐 Dashboard running at http://${config.DASHBOARD_HOST}:${config.DASHBOARD_PORT}`
